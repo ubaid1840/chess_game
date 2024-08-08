@@ -41,8 +41,8 @@ function CGame(oData) {
         _iHistoryID = 0;
         _iBlackTime = 0;
         _iWhiteTime = 0;
-        _penaltyWhiteTime = 60000;
-        _penaltyBlackTime = 60000;
+        _penaltyWhiteTime = 30000;
+        _penaltyBlackTime = 30000;
         _iBlackScore = START_SCORE;
         _iWhiteScore = START_SCORE;
 
@@ -129,12 +129,12 @@ function CGame(oData) {
     window.socket.on("movePlayedBy", async (data) => {
 
         if (_iCurPlayer == WHITE) {
-            _penaltyWhiteTime = 61000;
+            _penaltyWhiteTime = 31000;
             s_oGame.cellClicked(data.startRow, data.startCol);
             this._checkLegalMove(data.endRow, data.endCol);
 
         } else {
-            _penaltyBlackTime = 61000;
+            _penaltyBlackTime = 31000;
             _oThinking.unload();
             _oThinking = null;
             let opponentMove = convertMoveToOpponentPerspective(data.startRow, data.startCol, data.endRow, data.endCol)
@@ -569,8 +569,9 @@ function CGame(oData) {
 
     this.gameOver = function (iWinner) {
         _bStartGame = false;
-        window.parent.postMessage({ type: 'finished_chess' }, '*');
+        
         if (iWinner === WHITE) {
+            window.parent.postMessage({ type: 'finished_chess' }, '*');
             _iBlackScore = 0;
             var data = {
                 roomID: ROOM_ID,
@@ -580,7 +581,7 @@ function CGame(oData) {
             window.socket.emit('gameFinished', data);
 
         } else if (iWinner === BLACK) {
-
+            window.parent.postMessage({ type: 'finished_chess' }, '*');
             _iWhiteScore = 0;
 
         } else if (iWinner === DRAW) {
@@ -591,12 +592,16 @@ function CGame(oData) {
 
         _oEndPanel = new CEndPanel(s_oSpriteLibrary.getSprite('msg_box'));
 
-
-
         setTimeout(function () {
             _oEndPanel.show(iWinner, _iBlackTime, _iWhiteTime, _iBlackScore, _iWhiteScore);
             _oInterface.setInfoVisible(false);
         }, 1000);
+
+        if(iWinner === DRAW){
+            setTimeout(()=>{
+                this.restartGame()
+            },5000)
+        }
     };
 
 
@@ -626,7 +631,7 @@ function CGame(oData) {
                 }
                 if (_penaltyWhiteTime <= 0) {
                     this.changeTurn()
-                    _penaltyWhiteTime = 61000
+                    _penaltyWhiteTime = 31000
 
                 }
                 _penaltyWhiteTime -= s_iTimeElaps;
@@ -643,7 +648,7 @@ function CGame(oData) {
                     this.changeTurn()
                     _oThinking.unload();
                     _oThinking = null;
-                    _penaltyBlackTime = 61000
+                    _penaltyBlackTime = 31000
                   
                 }
                 _penaltyBlackTime -= s_iTimeElaps;
