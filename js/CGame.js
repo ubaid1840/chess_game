@@ -30,6 +30,7 @@ function CGame(oData) {
     var _penaltyBlackTime;
 
     var PromoPanel = null;
+    var tempTime;
 
     this._init = function () {
 
@@ -117,7 +118,7 @@ function CGame(oData) {
             row: 7 - data.pos.row,
             col: data.pos.col
         }
-      
+
         if (_iCurPlayer === WHITE) {
             this.changePiece(data.piece, data.pos);
         } else {
@@ -127,20 +128,40 @@ function CGame(oData) {
     })
 
     window.socket.on("movePlayedBy", async (data) => {
-
-        if (_iCurPlayer == WHITE) {
+       
+        if(_iCurPlayer == WHITE){
+            _oCellActive.setActive(false);
             _penaltyWhiteTime = 31000;
-            s_oGame.cellClicked(data.startRow, data.startCol);
-            this._checkLegalMove(data.endRow, data.endCol);
-
+            this._movePiece(data.endRow, data.endCol);
+            this._deselectPiece();
+            _iPlayerState = PLAYER_STATE_MOVING;
         } else {
             _penaltyBlackTime = 31000;
-            _oThinking.unload();
-            _oThinking = null;
+                _oThinking.unload();
+                _oThinking = null;
             let opponentMove = convertMoveToOpponentPerspective(data.startRow, data.startCol, data.endRow, data.endCol)
-            s_oGame.cellClicked(opponentMove.opponentStart.row, opponentMove.opponentStart.col);
-            this._checkLegalMove(opponentMove.opponentEnd.row, opponentMove.opponentEnd.col);
+            this._selectPiece(opponentMove.opponentStart.row, opponentMove.opponentStart.col);
+            _oCellActive.setActive(false);
+            this._movePiece(opponentMove.opponentEnd.row, opponentMove.opponentEnd.col);
+            this._deselectPiece();
+            _iPlayerState = PLAYER_STATE_MOVING;
         }
+
+       
+
+        // if (_iCurPlayer == WHITE) {
+        //     _penaltyWhiteTime = 31000;
+        //     s_oGame.cellClicked(data.startRow, data.startCol);
+        //     this._checkLegalMove(data.endRow, data.endCol);
+
+        // } else {
+        //     _penaltyBlackTime = 31000;
+        //     _oThinking.unload();
+        //     _oThinking = null;
+        //     let opponentMove = convertMoveToOpponentPerspective(data.startRow, data.startCol, data.endRow, data.endCol)
+        //     s_oGame.cellClicked(opponentMove.opponentStart.row, opponentMove.opponentStart.col);
+        //     this._checkLegalMove(opponentMove.opponentEnd.row, opponentMove.opponentEnd.col);
+        // }
     })
 
     function movePlayedByPlayer(startRow, startCol, row, col) {
@@ -152,7 +173,7 @@ function CGame(oData) {
             endRow: row,
             endCol: col
         }
-        window.socket.emit('movePlayed', data);
+        // window.socket.emit('movePlayed', data);
     }
 
     function convertMoveToOpponentPerspective(startRow, startCol, endRow, endCol) {
@@ -302,9 +323,9 @@ function CGame(oData) {
                 } else if (_aCell[iRow][iCol].isHighlight()) {
                     /////// MOVE OR EAT PIECE
 
-                    movePlayedByPlayer(_oCellActive.getLogicPos().row, _oCellActive.getLogicPos().col, iRow, iCol)
-                    this._deselectPiece();
-                    // this._checkLegalMove(iRow, iCol);
+                    // movePlayedByPlayer(_oCellActive.getLogicPos().row, _oCellActive.getLogicPos().col, iRow, iCol)
+                    // this._deselectPiece();
+                    this._checkLegalMove(iRow, iCol);
 
                 } else {
                     //////// DESELECT PIECE
@@ -353,9 +374,16 @@ function CGame(oData) {
 
             _oCellActive.setActive(false);
             // movePlayedByPlayer(_oCellActive.getLogicPos().row, _oCellActive.getLogicPos().col, iRow, iCol)
-            this._movePiece(iRow, iCol);
-            this._deselectPiece();
-            _iPlayerState = PLAYER_STATE_MOVING;
+            var data = {
+                roomID: ROOM_ID,
+                playerID: PLAYER_ID,
+                startRow: _oCellActive.getLogicPos().row,
+                startCol: _oCellActive.getLogicPos().col,
+                endRow: iRow,
+                endCol: iCol
+            }
+            window.socket.emit("movePlayed", data )
+           
         } else {
             this._disableAllThreat();
             for (var i = 0; i < aThreatList.length; i++) {
@@ -569,7 +597,8 @@ function CGame(oData) {
 
     this.gameOver = function (iWinner) {
         _bStartGame = false;
-        
+
+
         if (iWinner === WHITE) {
             window.parent.postMessage({ type: 'finished_chess' }, '*');
             _iBlackScore = 0;
@@ -592,16 +621,47 @@ function CGame(oData) {
 
         _oEndPanel = new CEndPanel(s_oSpriteLibrary.getSprite('msg_box'));
 
-        setTimeout(function () {
-            _oEndPanel.show(iWinner, _iBlackTime, _iWhiteTime, _iBlackScore, _iWhiteScore);
-            _oInterface.setInfoVisible(false);
-        }, 1000);
+        if (IS_HOST) {
 
-        if(iWinner === DRAW){
-            setTimeout(()=>{
-                this.restartGame()
-            },5000)
+            setTimeout(function () {
+                _oEndPanel.show(iWinner, _iBlackTime, _iWhiteTime, _iBlackScore, _iWhiteScore);
+                _oInterface.setInfoVisible(false);
+            }, 1000);
+
+            if (iWinner === DRAW) {
+                setTimeout(() => {
+                    this.restartGame()
+                }, 5000)
+            }
+        } else {
+            const temp = iWinner
+            if (temp == WHITE) {
+                iWinner = BLACK
+                _iWhiteScore = 0;
+                tempTime = _iWhiteTime
+                // _iWhiteTime = _iBlackTime
+                // _iBlackTime = tempTime
+
+            } else {
+                iWinner = WHITE
+                _iBlackScore = 0
+                tempTime = _iBlackTime
+                // _iBlackTime = _iWhiteTime
+                // _iWhiteTime = tempTime
+            }
+            setTimeout(function () {
+                _oEndPanel.show(iWinner, _iBlackTime, _iWhiteTime, _iBlackScore, _iWhiteScore);
+                _oInterface.setInfoVisible(false);
+            }, 1000);
+
+            if (iWinner === DRAW) {
+                setTimeout(() => {
+                    this.restartGame()
+                }, 5000)
+            }
         }
+
+
     };
 
 
@@ -621,11 +681,11 @@ function CGame(oData) {
                         PromoPanel = null;
                         var oPawnPos = s_oBoardStateController.checkPromotion(_aCell);
                         var data = {
-                            roomID : ROOM_ID,
-                            piece : QUEEN,
-                            pos : oPawnPos
+                            roomID: ROOM_ID,
+                            piece: QUEEN,
+                            pos: oPawnPos
                         }
-                        
+
                         window.socket.emit('changePiece', data);
                     }
                 }
@@ -649,11 +709,11 @@ function CGame(oData) {
                     _oThinking.unload();
                     _oThinking = null;
                     _penaltyBlackTime = 31000
-                  
+
                 }
                 _penaltyBlackTime -= s_iTimeElaps;
                 _iBlackTime += s_iTimeElaps;
-             
+
                 _oInterface.refreshBlackTime(_penaltyBlackTime);
 
                 _iBlackScore -= (SCORE_DECREASE_PER_SECOND * s_iTimeElaps) / 1000;

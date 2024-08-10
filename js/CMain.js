@@ -138,23 +138,42 @@ function CMain(oData) {
         s_oSpriteLibrary.addSprite("highlight", "./sprites/highlight.png");
         s_oSpriteLibrary.addSprite("bg_turn", "./sprites/player_panel.png");
         s_oSpriteLibrary.addSprite("audio_icon_big", "./sprites/audio_icon_big.png");
+        if(IS_HOST){
+            s_oSpriteLibrary.addSprite("black_bishop", "./sprites/pieces/black_bishop.png");
+            s_oSpriteLibrary.addSprite("black_king", "./sprites/pieces/black_king.png");
+            s_oSpriteLibrary.addSprite("black_knight", "./sprites/pieces/black_knight.png");
+            s_oSpriteLibrary.addSprite("black_pawn", "./sprites/pieces/black_pawn.png");
+            s_oSpriteLibrary.addSprite("black_queen", "./sprites/pieces/black_queen.png");
+            s_oSpriteLibrary.addSprite("black_rook", "./sprites/pieces/black_rook.png");
+    
+            s_oSpriteLibrary.addSprite("white_bishop", "./sprites/pieces/white_bishop.png");
+            s_oSpriteLibrary.addSprite("white_king", "./sprites/pieces/white_king.png");
+            s_oSpriteLibrary.addSprite("white_knight", "./sprites/pieces/white_knight.png");
+            s_oSpriteLibrary.addSprite("white_pawn", "./sprites/pieces/white_pawn.png");
+            s_oSpriteLibrary.addSprite("white_queen", "./sprites/pieces/white_queen.png");
+            s_oSpriteLibrary.addSprite("white_rook", "./sprites/pieces/white_rook.png");
+    
+            s_oSpriteLibrary.addSprite("white_king_marker", "./sprites/white_king_marker.png");
+            s_oSpriteLibrary.addSprite("black_king_marker", "./sprites/black_king_marker.png");
+        } else {
+            s_oSpriteLibrary.addSprite("black_bishop", "./sprites/pieces/white_bishop.png");
+        s_oSpriteLibrary.addSprite("black_king", "./sprites/pieces/white_king.png");
+        s_oSpriteLibrary.addSprite("black_knight", "./sprites/pieces/white_knight.png");
+        s_oSpriteLibrary.addSprite("black_pawn", "./sprites/pieces/white_pawn.png");
+        s_oSpriteLibrary.addSprite("black_queen", "./sprites/pieces/white_queen.png");
+        s_oSpriteLibrary.addSprite("black_rook", "./sprites/pieces/white_rook.png");
 
-        s_oSpriteLibrary.addSprite("black_bishop", "./sprites/pieces/black_bishop.png");
-        s_oSpriteLibrary.addSprite("black_king", "./sprites/pieces/black_king.png");
-        s_oSpriteLibrary.addSprite("black_knight", "./sprites/pieces/black_knight.png");
-        s_oSpriteLibrary.addSprite("black_pawn", "./sprites/pieces/black_pawn.png");
-        s_oSpriteLibrary.addSprite("black_queen", "./sprites/pieces/black_queen.png");
-        s_oSpriteLibrary.addSprite("black_rook", "./sprites/pieces/black_rook.png");
+        s_oSpriteLibrary.addSprite("white_bishop", "./sprites/pieces/black_bishop.png");
+        s_oSpriteLibrary.addSprite("white_king", "./sprites/pieces/black_king.png");
+        s_oSpriteLibrary.addSprite("white_knight", "./sprites/pieces/black_knight.png");
+        s_oSpriteLibrary.addSprite("white_pawn", "./sprites/pieces/black_pawn.png");
+        s_oSpriteLibrary.addSprite("white_queen", "./sprites/pieces/black_queen.png");
+        s_oSpriteLibrary.addSprite("white_rook", "./sprites/pieces/black_rook.png");
 
-        s_oSpriteLibrary.addSprite("white_bishop", "./sprites/pieces/white_bishop.png");
-        s_oSpriteLibrary.addSprite("white_king", "./sprites/pieces/white_king.png");
-        s_oSpriteLibrary.addSprite("white_knight", "./sprites/pieces/white_knight.png");
-        s_oSpriteLibrary.addSprite("white_pawn", "./sprites/pieces/white_pawn.png");
-        s_oSpriteLibrary.addSprite("white_queen", "./sprites/pieces/white_queen.png");
-        s_oSpriteLibrary.addSprite("white_rook", "./sprites/pieces/white_rook.png");
-
-        s_oSpriteLibrary.addSprite("white_king_marker", "./sprites/white_king_marker.png");
-        s_oSpriteLibrary.addSprite("black_king_marker", "./sprites/black_king_marker.png");
+        s_oSpriteLibrary.addSprite("white_king_marker", "./sprites/black_king_marker.png");
+        s_oSpriteLibrary.addSprite("black_king_marker", "./sprites/white_king_marker.png");
+        }
+        
         s_oSpriteLibrary.addSprite("score_panel", "./sprites/score_panel.png");
 
         s_oSpriteLibrary.addSprite("toggle_easy", "./sprites/toggle_easy.png");
