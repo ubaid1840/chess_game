@@ -54,9 +54,9 @@ function __iosResize(){
 
     window.scrollTo(0, 0);
 
-	console.log(window.devicePixelRatio);
-	console.log(window.innerWidth);
-	console.log(window.innerHeight);
+	// console.log(window.devicePixelRatio);
+	// console.log(window.innerWidth);
+	// console.log(window.innerHeight);
 
     if( platform.product === "iPhone" ){
         switch(window.devicePixelRatio){

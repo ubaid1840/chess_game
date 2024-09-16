@@ -15,7 +15,7 @@ $(window).resize(function() {
 });
 
 function trace(szMsg){
-    console.log(szMsg);
+    // console.log(szMsg);
 }
 
 function getSize(Name) {
