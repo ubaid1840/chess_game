@@ -10,11 +10,11 @@ Following is the example how the URL parameters should be passed for host and fo
 
 ### For Host
 
-http://localhost:5000/?roomID=2&playerID=1&playerName=abc&numOfPlayers=2&isHost=true
+http://localhost:5000/?roomID=2&playerID=1&isHost=true
 
 ### For other player
 
-http://localhost:5000/?roomID=2&playerID=2&playerName=john
+http://localhost:5000/?roomID=2&playerID=2
 
 ## Additional Information
 

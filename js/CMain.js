@@ -267,6 +267,7 @@ function CMain(oData) {
         s_iTimeElaps = iCurTime - s_iPrevTime;
         s_iCntTime += s_iTimeElaps;
         s_iCntFps++;
+        
         s_iPrevTime = iCurTime;
 
         if (s_iCntTime >= 1000) {

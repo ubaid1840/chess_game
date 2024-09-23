@@ -104,17 +104,13 @@
           return {
             roomID: params.get("roomID"),
             playerID: params.get("playerID"),
-            playerName: params.get("playerName"),
-            numOfPlayers: parseInt(params.get("numOfPlayers")) || null,
             isHost: params.get("isHost") === "true",
           };
         }
-        const { roomID, playerID, playerName, numOfPlayers, isHost } =
+        const { roomID, playerID, isHost } =
           getQueryParams();
         ROOM_ID = roomID;
         PLAYER_ID = playerID;
-        PLAYER_NAME = playerName;
-        NUM_OF_PLAYERS = numOfPlayers;
         IS_HOST = isHost;
         window.socket = io();
 
@@ -123,8 +119,6 @@
           socket.emit("joinRoom", {
             roomID,
             playerID,
-            playerName,
-            numOfPlayers,
             isHost,
           });
         });
@@ -134,8 +128,6 @@
           $("#waitingMessage").hide();
           $("#gameFinishedMessage").show();
         });
-
-        socket.on("waiting", ({ playersCount, numOfPlayers }) => {});
 
         socket.on("gameStarted", (data) => {
           alert(data.message);

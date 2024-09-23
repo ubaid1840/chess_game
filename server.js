@@ -25,14 +25,11 @@ const roomSchema = new mongoose.Schema({
     roomID: String,
     players: [{
         playerID: String,
-        playerName: String,
         socketID: String,
         connected: { type: Boolean, default: true }
     }],
-    numOfPlayers: Number,
     createdAt: { type: Date, default: Date.now },
     hostID: String,
-    hostName: String,
     gameStarted: { type: Boolean, default: false },
     startTime: String,
 });
@@ -41,7 +38,7 @@ const Room = mongoose.model('Room', roomSchema);
 
 io.on('connection', (socket) => {
 
-    socket.on('joinRoom', async ({ roomID, playerID, playerName, numOfPlayers, isHost }) => {
+    socket.on('joinRoom', async ({ roomID, playerID, isHost }) => {
         try {
             let room = await Room.findOne({ roomID });
 
@@ -49,10 +46,8 @@ io.on('connection', (socket) => {
                 if (!room) {
                     room = new Room({
                         roomID,
-                        players: [{ playerID, playerName, socketID: socket.id, connected: true }],
-                        numOfPlayers,
+                        players: [{ playerID, socketID: socket.id, connected: true }],
                         hostID: playerID,
-                        hostName: playerName,
                         gameStarted: false
                     });
                     await room.save();
@@ -67,8 +62,6 @@ io.on('connection', (socket) => {
                             hostPlayer.connected = true;
                             hostPlayer.socketID = socket.id;
                             room.hostID = playerID;
-                            room.hostName = playerName;
-                            room.numOfPlayers = numOfPlayers;
                             room.startTime = new Date().getTime();
                             await room.save();
                             socket.join(roomID);
@@ -91,21 +84,19 @@ io.on('connection', (socket) => {
                             existingPlayer.connected = true;
                             existingPlayer.socketID = socket.id;
                         } else {
-                            room.players.push({ playerID, playerName, socketID: socket.id, connected: true });
+                            room.players.push({ playerID, socketID: socket.id, connected: true });
                         }
                         await room.save();
                         socket.join(roomID);
                         const playersCount = room.players.filter(p => p.connected).length;
-                        io.in(roomID).emit('waiting', { playersCount, numOfPlayers: room.numOfPlayers });
 
-                        if (playersCount === room.numOfPlayers) {
+                        if (playersCount === 2) {
                             room.gameStarted = true;
                             room.startTime = new Date().getTime();
                             await room.save();
                             io.in(roomID).emit('startGame', {
                                 host: {
                                     hostID: room.hostID,
-                                    hostName: room.hostName
                                 },
                                 players: room.players
                             });
@@ -136,6 +127,14 @@ io.on('connection', (socket) => {
 
     socket.on("changePiece", (data) => {
         io.in(data.roomID).emit('changePieceBy', data);
+    });
+
+    socket.on("timeupdatewhite", (data) => {
+        io.in(data.roomID).emit('timeupdatewhite', data);
+    });
+
+    socket.on("timeupdateblack", (data) => {
+        io.in(data.roomID).emit('timeupdateblack', data);
     });
 
     socket.on("gameFinished", async (data) => {

@@ -42,8 +42,8 @@ function CGame(oData) {
         _iHistoryID = 0;
         _iBlackTime = 0;
         _iWhiteTime = 0;
-        _penaltyWhiteTime = 30000;
-        _penaltyBlackTime = 30000;
+        _penaltyWhiteTime = 300000;
+        _penaltyBlackTime = 300000;
         _iBlackScore = START_SCORE;
         _iWhiteScore = START_SCORE;
 
@@ -128,17 +128,17 @@ function CGame(oData) {
     })
 
     window.socket.on("movePlayedBy", async (data) => {
-       
-        if(_iCurPlayer == WHITE){
+
+        if (_iCurPlayer == WHITE) {
             _oCellActive.setActive(false);
-            _penaltyWhiteTime = 31000;
+            // _penaltyWhiteTime = 31000;
             this._movePiece(data.endRow, data.endCol);
             this._deselectPiece();
             _iPlayerState = PLAYER_STATE_MOVING;
         } else {
-            _penaltyBlackTime = 31000;
-                _oThinking.unload();
-                _oThinking = null;
+            // _penaltyBlackTime = 31000;
+            _oThinking.unload();
+            _oThinking = null;
             let opponentMove = convertMoveToOpponentPerspective(data.startRow, data.startCol, data.endRow, data.endCol)
             this._selectPiece(opponentMove.opponentStart.row, opponentMove.opponentStart.col);
             _oCellActive.setActive(false);
@@ -147,7 +147,7 @@ function CGame(oData) {
             _iPlayerState = PLAYER_STATE_MOVING;
         }
 
-       
+
 
         // if (_iCurPlayer == WHITE) {
         //     _penaltyWhiteTime = 31000;
@@ -382,8 +382,8 @@ function CGame(oData) {
                 endRow: iRow,
                 endCol: iCol
             }
-            window.socket.emit("movePlayed", data )
-           
+            window.socket.emit("movePlayed", data)
+
         } else {
             this._disableAllThreat();
             for (var i = 0; i < aThreatList.length; i++) {
@@ -667,6 +667,20 @@ function CGame(oData) {
 
     this.update = function () {
 
+        window.socket.on("timeupdatewhite", (data) => {
+            if (_iCurPlayer === WHITE) {
+                _oInterface.refreshWhiteTime(data.time);
+            }
+
+        })
+
+        window.socket.on("timeupdateblack", (data) => {
+            if (_iCurPlayer === BLACK) {
+                _oInterface.refreshBlackTime(data.time);
+            }
+
+        })
+
         if (_bStartGame) {
             if (_oThinking !== null) {
                 _oThinking.update();
@@ -674,8 +688,10 @@ function CGame(oData) {
 
             this.setPieceDepth();
 
+
+
             if (_iCurPlayer === WHITE) {
-                if (_penaltyWhiteTime <= 5000) {
+                if (_penaltyWhiteTime <= 300000) {
                     if (PromoPanel) {
                         PromoPanel.unload();
                         PromoPanel = null;
@@ -690,13 +706,20 @@ function CGame(oData) {
                     }
                 }
                 if (_penaltyWhiteTime <= 0) {
-                    this.changeTurn()
-                    _penaltyWhiteTime = 31000
+                    _penaltyWhiteTime = 0
+                    // this.changeTurn()
+                    // _penaltyWhiteTime = 31000
+                   this.gameOver(BLACK)
 
                 }
                 _penaltyWhiteTime -= s_iTimeElaps;
                 _iWhiteTime += s_iTimeElaps;
-                _oInterface.refreshWhiteTime(_penaltyWhiteTime);
+                window.socket.emit("timeupdatewhite", {
+                    roomID: ROOM_ID,
+                    playerID: PLAYER_ID,
+                    time: _penaltyWhiteTime
+                })
+
 
                 _iWhiteScore -= (SCORE_DECREASE_PER_SECOND * s_iTimeElaps) / 1000;
                 if (_iWhiteScore < 0) {
@@ -708,13 +731,20 @@ function CGame(oData) {
                     this.changeTurn()
                     _oThinking.unload();
                     _oThinking = null;
-                    _penaltyBlackTime = 31000
+                    _penaltyBlackTime = 0
+                    this.gameOver(WHITE)
 
                 }
                 _penaltyBlackTime -= s_iTimeElaps;
                 _iBlackTime += s_iTimeElaps;
 
-                _oInterface.refreshBlackTime(_penaltyBlackTime);
+                window.socket.emit("timeupdateblack", {
+                    roomID: ROOM_ID,
+                    playerID: PLAYER_ID,
+                    time: _penaltyBlackTime
+                })
+
+
 
                 _iBlackScore -= (SCORE_DECREASE_PER_SECOND * s_iTimeElaps) / 1000;
                 if (_iBlackScore < 0) {
