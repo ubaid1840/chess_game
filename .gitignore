@@ -2,3 +2,4 @@
 package-lock.json
 .env
 *.zip
+/config/service_key.json

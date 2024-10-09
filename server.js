@@ -11,49 +11,31 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGODB_URI || 'your_mongodb_uri';
-
+const { admin, db } = require("./config/firebase")
 app.use(express.static(path.join(__dirname)));
 
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-}).then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
-
-const roomSchema = new mongoose.Schema({
-    roomID: String,
-    players: [{
-        playerID: String,
-        socketID: String,
-        connected: { type: Boolean, default: true }
-    }],
-    createdAt: { type: Date, default: Date.now },
-    hostID: String,
-    gameStarted: { type: Boolean, default: false },
-    startTime: String,
-});
-
-const Room = mongoose.model('Room', roomSchema);
 
 io.on('connection', (socket) => {
 
     socket.on('joinRoom', async ({ roomID, playerID, isHost }) => {
         try {
-            let room = await Room.findOne({ roomID });
+            const roomRef = db.collection('chess-rooms').doc(roomID);
+            const roomDoc = await roomRef.get();
 
             if (isHost) {
-                if (!room) {
-                    room = new Room({
+                if (!roomDoc.exists) {
+                    // Create a new room
+                    const roomData = {
                         roomID,
                         players: [{ playerID, socketID: socket.id, connected: true }],
                         hostID: playerID,
-                        gameStarted: false
-                    });
-                    await room.save();
+                        gameStarted: false,
+                        startTime: null,
+                    };
+                    await roomRef.set(roomData);
                     socket.join(roomID);
                 } else {
-
+                    const room = roomDoc.data();
                     const hostPlayer = room.players.find(p => p.playerID === playerID);
                     if (hostPlayer) {
                         if (room.gameStarted) {
@@ -61,9 +43,8 @@ io.on('connection', (socket) => {
                         } else {
                             hostPlayer.connected = true;
                             hostPlayer.socketID = socket.id;
-                            room.hostID = playerID;
                             room.startTime = new Date().getTime();
-                            await room.save();
+                            await roomRef.update({ players: room.players, startTime: room.startTime });
                             socket.join(roomID);
                         }
                     } else {
@@ -73,33 +54,34 @@ io.on('connection', (socket) => {
                 }
             } else {
                 setTimeout(async () => {
-                    room = await Room.findOne({ roomID });
-                    if (!room) {
+                    const updatedRoomDoc = await roomRef.get();
+                    if (!updatedRoomDoc.exists) {
                         socket.emit('joinRoomError', { message: 'Room not found' });
-                    } else if (room.gameStarted) {
-                        socket.emit('gameStarted', { message: 'Game has already started. You cannot join the room.' });
                     } else {
-                        const existingPlayer = room.players.find(p => p.playerID === playerID);
-                        if (existingPlayer) {
-                            existingPlayer.connected = true;
-                            existingPlayer.socketID = socket.id;
+                        const room = updatedRoomDoc.data();
+                        if (room.gameStarted) {
+                            socket.emit('gameStarted', { message: 'Game has already started. You cannot join the room.' });
                         } else {
-                            room.players.push({ playerID, socketID: socket.id, connected: true });
-                        }
-                        await room.save();
-                        socket.join(roomID);
-                        const playersCount = room.players.filter(p => p.connected).length;
+                            const existingPlayer = room.players.find(p => p.playerID === playerID);
+                            if (existingPlayer) {
+                                existingPlayer.connected = true;
+                                existingPlayer.socketID = socket.id;
+                            } else {
+                                room.players.push({ playerID, socketID: socket.id, connected: true });
+                            }
+                            await roomRef.update({ players: room.players });
+                            socket.join(roomID);
+                            const playersCount = room.players.filter(p => p.connected).length;
 
-                        if (playersCount === 2) {
-                            room.gameStarted = true;
-                            room.startTime = new Date().getTime();
-                            await room.save();
-                            io.in(roomID).emit('startGame', {
-                                host: {
-                                    hostID: room.hostID,
-                                },
-                                players: room.players
-                            });
+                            if (playersCount === 2) {
+                                room.gameStarted = true;
+                                room.startTime = new Date().getTime();
+                                await roomRef.update({ gameStarted: true, startTime: room.startTime });
+                                io.in(roomID).emit('startGame', {
+                                    host: { hostID: room.hostID },
+                                    players: room.players,
+                                });
+                            }
                         }
                     }
                 }, 5000);
@@ -111,13 +93,30 @@ io.on('connection', (socket) => {
     });
 
     socket.on('playerDisconnectData', async () => {
-        const room = await Room.findOne({ 'players.socketID': socket.id });
-        if (room) {
-            io.in(room.roomID).emit('gameEnd');
-            setTimeout(()=>{
-                io.in(room.roomID).emit('gamefinished');
-            },2000)
-           
+        try {
+            const roomsSnapshot = await db.collection('chess-rooms').get();
+            let roomDoc = null;
+            let roomData = null;
+            roomsSnapshot.forEach(doc => {
+                const data = doc.data();
+                const player = data.players.find(p => p.socketID === socket.id);
+                if (player) {
+                    roomDoc = doc;
+                    roomData = data;
+                }
+            });
+
+            if (roomDoc && roomData) {
+                io.in(roomData.roomID).emit('gameEnd');
+
+                setTimeout(() => {
+                    io.in(roomData.roomID).emit('gamefinished');
+                }, 2000);
+            } else {
+                console.log("Room or player not found for this socketID.");
+            }
+        } catch (error) {
+            console.error('Error handling player disconnect:', error);
         }
     });
 
@@ -140,7 +139,12 @@ io.on('connection', (socket) => {
     socket.on("gameFinished", async (data) => {
         const roomID = data.roomID;
         const playerID = data.playerID;
-        const room = await Room.findOne({ roomID });
+        const roomRef = db.collection('chess-rooms').doc(roomID);
+        const roomDoc = await roomRef.get();
+        const room = roomDoc.data();
+
+        if (!room) return;
+
         const startTime = room.startTime;
 
         const url = 'https://us-central1-html5-gaming-bot.cloudfunctions.net/callbackpvpgame';
@@ -149,7 +153,7 @@ io.on('connection', (socket) => {
         const mydata = {
             gameUrl: 'chess',
             method: 'win',
-            roomID: roomID,
+            roomID,
             winnerID: playerID,
             timeStart: startTime
         };
@@ -159,11 +163,9 @@ io.on('connection', (socket) => {
                 headers: {
                     'sign': sign
                 }
-            }).then(async () => {
-                io.in(data.roomID).emit('gamefinished');
-                await Room.deleteOne({ roomID });
             });
-
+            io.in(data.roomID).emit('gamefinished');
+            await roomRef.delete();
         } catch (error) {
             console.log('Error sending game result:', error);
         }

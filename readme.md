@@ -1,5 +1,9 @@
 # Getting Started
 
+## Firebase setup
+Setup firebase project and download serviceAccountKey.json file and save it in config folder and rename it to service_key.json
+
+
 Run the server
 
 ```bash
@@ -16,7 +20,10 @@ http://localhost:5000/?roomID=2&playerID=1&isHost=true
 
 http://localhost:5000/?roomID=2&playerID=2
 
+
+
 ## Additional Information
+
 
 Player Disconnection Handling: If a player disconnects from the game, the remaining player is declared the winner.
 
